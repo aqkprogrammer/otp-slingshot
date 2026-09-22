@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#070b16" />
+  <title>OTP Slingshot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="stage" id="stage">
+
+    <!-- Backdrop: aurora, grid floor, particles -->
+    <div class="backdrop" aria-hidden="true">
+      <div class="aurora a1"></div>
+      <div class="aurora a2"></div>
+      <div class="aurora a3"></div>
+      <div class="grid-floor"></div>
+      <div class="vignette"></div>
+      <div class="scanlines"></div>
+    </div>
+    <canvas class="fx" id="fx" aria-hidden="true"></canvas>
+
+    <!-- HUD -->
+    <header class="hud">
+      <div class="hud-left">
+        <span class="status-dot" id="statusDot"></span>
+        <span class="hud-title">OTP Slingshot</span>
+        <span class="hud-sub">secure gateway · node 07</span>
+      </div>
+      <div class="hud-right">
+        <div class="stat"><span class="stat-k">Attempts</span><span class="stat-v" id="statAttempts">00</span></div>
+        <div class="stat"><span class="stat-k">Accuracy</span><span class="stat-v" id="statAcc">—</span></div>
+        <div class="stat"><span class="stat-k">Time</span><span class="stat-v" id="statTime">00:00</span></div>
+        <button class="icon-btn" id="soundBtn" aria-label="Toggle sound" aria-pressed="true" title="Sound">
+          <svg viewBox="0 0 24 24" class="ic-on"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 8.5a4.5 4.5 0 010 7M18.5 6a8 8 0 010 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <svg viewBox="0 0 24 24" class="ic-off"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 9l5 6M21 9l-5 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Verification card -->
+    <section class="card" id="card">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <p class="eyebrow"><span class="pulse"></span>OTP Slingshot</p>
+      <h1>OTP Verification</h1>
+      <p class="lead"><strong id="greet">Hi Drake Le,</strong> shoot each digit into the correct slot to complete the 6-digit verification code.</p>
+      <div class="slots" id="slots" aria-label="OTP slots">
+        <div class="slot active" data-i="0"><span class="dot"></span></div>
+        <div class="slot" data-i="1"><span class="dot"></span></div>
+        <div class="slot" data-i="2"><span class="dot"></span></div>
+        <div class="slot" data-i="3"><span class="dot"></span></div>
+        <div class="slot" data-i="4"><span class="dot"></span></div>
+        <div class="slot" data-i="5"><span class="dot"></span></div>
+      </div>
+      <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
+
+      <!-- Hint -->
+      <div class="hint" id="hint">
+        <button class="hint-btn" id="hintBtn" aria-expanded="false">
+          <svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 00-3.5 10.9c.6.5.9 1 .9 1.6V17h5.2v-1.5c0-.6.3-1.1.9-1.6A6 6 0 0012 3zM9.5 19h5M10.5 21h3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span id="hintLabel">Show hint</span>
+        </button>
+        <div class="hint-code" id="hintCode" hidden>
+          <span class="hint-k">OTP</span>
+          <span class="hint-digits" id="hintDigits"></span>
+          <span class="hint-note">leaked by the per-digit check</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <!-- Overlay for bands + aim guide -->
+    <svg class="overlay" id="overlay" aria-hidden="true">
+      <defs>
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2.2" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <g id="aim" class="aim" style="display:none">
+        <path id="aimArc" class="aim-arc" d="" />
+        <path id="pullArc" class="pull-arc" d="" />
+        <path id="aimPtr" class="aim-ptr" d="" />
+        <g id="traj" class="traj"></g>
+      </g>
+      <line id="bandL" class="band" />
+      <line id="bandR" class="band" />
+    </svg>
+
+    <!-- Slingshot -->
+    <div class="sling" id="sling">
+      <svg class="sling-svg" viewBox="0 0 220 300" aria-hidden="true">
+        <defs>
+          <linearGradient id="metal" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#1a2233"/>
+            <stop offset="0.4" stop-color="#3a4760"/>
+            <stop offset="0.6" stop-color="#2a3448"/>
+            <stop offset="1" stop-color="#121826"/>
+          </linearGradient>
+          <linearGradient id="metalDark" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#0f1523"/>
+            <stop offset="0.5" stop-color="#2b3547"/>
+            <stop offset="1" stop-color="#0c111c"/>
+          </linearGradient>
+          <linearGradient id="neon" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#9df6ff"/>
+            <stop offset="1" stop-color="#38e1ff"/>
+          </linearGradient>
+          <linearGradient id="amberM" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#ffe29a"/>
+            <stop offset="0.5" stop-color="#ffc24d"/>
+            <stop offset="1" stop-color="#c98a16"/>
+          </linearGradient>
+          <filter id="sglow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="3" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="drop" x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#000" flood-opacity=".55"/>
+          </filter>
+        </defs>
+        <g filter="url(#drop)">
+          <!-- handle -->
+          <path d="M92 158 C86 200 84 245 94 290 Q110 300 126 290 C136 245 134 200 128 158 Z" fill="url(#metal)"/>
+          <path d="M100 176 L100 280 M120 176 L120 280" stroke="#0b0f18" stroke-width="2" opacity=".7"/>
+          <path d="M96 200 h28 M96 224 h28 M96 248 h28" stroke="#0b0f18" stroke-width="3" opacity=".6"/>
+          <!-- left prong -->
+          <path d="M96 168 C84 134 60 108 34 82 C21 69 23 50 38 43 C53 36 64 47 66 60 C79 88 98 112 112 138 L112 168 Z" fill="url(#metalDark)"/>
+          <!-- right prong -->
+          <path d="M124 168 C136 134 160 108 186 82 C199 69 197 50 182 43 C167 36 156 47 154 60 C141 88 122 112 108 138 L108 168 Z" fill="url(#metal)"/>
+          <path d="M100 150 L120 150 L120 172 L100 172 Z" fill="#232c3d"/>
+          <!-- neon edge lights -->
+          <g filter="url(#sglow)" fill="none" stroke="url(#neon)" stroke-width="2" stroke-linecap="round">
+            <path d="M92 164 C80 132 58 108 36 86"/>
+            <path d="M128 164 C140 132 162 108 184 86"/>
+            <path d="M98 186 C94 220 94 250 100 282"/>
+            <path d="M122 186 C126 220 126 250 120 282"/>
+          </g>
+          <!-- core collar -->
+          <path d="M88 152 L132 152 L130 182 L110 206 L90 182 Z" fill="#141b2a" stroke="#38e1ff" stroke-width="1.2" opacity=".95"/>
+          <rect x="86" y="148" width="48" height="9" rx="3" fill="#1d2637" stroke="#38e1ff" stroke-width="1"/>
+          <path d="M110 162 l8 8 -8 8 -8 -8 z" fill="none" stroke="#38e1ff" stroke-width="1.6"/>
+          <circle cx="110" cy="170" r="3" fill="#38e1ff" filter="url(#sglow)"/>
+          <circle cx="110" cy="170" r="6" fill="none" stroke="#38e1ff" stroke-width=".8" opacity=".6" class="ring-pulse"/>
+          <!-- tip caps -->
+          <g transform="rotate(-42 46 52)">
+            <rect x="28" y="42" width="36" height="20" rx="7" fill="#1d2637" stroke="#4a5a78" stroke-width="1.5"/>
+            <rect x="32" y="49" width="28" height="3" rx="1.5" fill="#38e1ff" filter="url(#sglow)"/>
+          </g>
+          <circle cx="44" cy="46" r="5" fill="url(#amberM)" stroke="#8a5a10" stroke-width="1.2"/>
+          <g transform="rotate(42 174 52)">
+            <rect x="156" y="42" width="36" height="20" rx="7" fill="#1d2637" stroke="#4a5a78" stroke-width="1.5"/>
+            <rect x="160" y="49" width="28" height="3" rx="1.5" fill="#38e1ff" filter="url(#sglow)"/>
+          </g>
+          <circle cx="176" cy="46" r="5" fill="url(#amberM)" stroke="#8a5a10" stroke-width="1.2"/>
+        </g>
+      </svg>
+      <div class="sling-glow"></div>
+    </div>
+
+    <!-- Loaded digit / projectile -->
+    <div class="pouch" id="pouch" role="button" aria-label="Loaded digit, drag to aim and release to shoot">
+      <span class="pouch-ring"></span>
+      <span id="pouchDigit"></span>
+    </div>
+
+    <!-- Digit tray -->
+    <div class="tray" id="tray" aria-label="Digits">
+      <button class="chip" data-d="0">0</button>
+      <button class="chip" data-d="1">1</button>
+      <button class="chip" data-d="2">2</button>
+      <button class="chip" data-d="3">3</button>
+      <button class="chip" data-d="4">4</button>
+      <button class="chip" data-d="5">5</button>
+      <button class="chip" data-d="6">6</button>
+      <button class="chip" data-d="7">7</button>
+      <button class="chip" data-d="8">8</button>
+      <button class="chip" data-d="9">9</button>
+    </div>
+    <p class="tray-help">Pick a digit · drag the orb back · release to fire</p>
+
+    <!-- Security log -->
+    <aside class="log" id="log" aria-label="Security log">
+      <div class="log-head"><span class="log-dot"></span>security log<span class="log-live">live</span></div>
+      <ol class="log-list" id="logList"></ol>
+    </aside>
+
+    <!-- Success modal -->
+    <div class="modal-backdrop" id="modal" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+        <div class="check" aria-hidden="true">
+          <span class="check-ring"></span>
+          <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <p class="modal-eyebrow">Access granted</p>
+        <h2 id="modalTitle">Verification successful!</h2>
+        <p class="modal-lead">You hit the correct OTP: <strong id="modalOtp"></strong>.</p>
+        <div class="modal-stats">
+          <div><span class="k">Attempts</span><span class="v" id="mAttempts">0</span></div>
+          <div><span class="k">Accuracy</span><span class="v" id="mAcc">0%</span></div>
+          <div><span class="k">Time</span><span class="v" id="mTime">00:00</span></div>
+        </div>
+        <button class="btn" id="enterBtn"><span>Enter System</span></button>
+      </div>
+    </div>
+
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
