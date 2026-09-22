@@ -1,5 +1,7 @@
 # OTP Slingshot
 
+**Live demo:** https://otp-slingshot.vercel.app
+
 A recreation of the "OTP Slingshot" verification screen from
 [this Instagram reel](https://www.instagram.com/p/Ddji48yB8yu/), restyled as a dark, glassy,
 neon HUD: load a digit into a slingshot, pull back, aim, and shoot it into the active slot of a
