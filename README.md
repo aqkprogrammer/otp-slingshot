@@ -1,6 +1,6 @@
 # OTP Slingshot
 
-**Live demo:** https://otp-slingshot.vercel.app
+**Live demo:** https://otp-slingshot.vercel.app · **Source:** https://github.com/aqkprogrammer/otp-slingshot
 
 A recreation of the "OTP Slingshot" verification screen from
 [this Instagram reel](https://www.instagram.com/p/Ddji48yB8yu/), restyled as a dark, glassy,
@@ -45,3 +45,14 @@ The OTP is fixed to `150787` to match the video. Add `?random` to the URL for a 
 
 Tunables sit at the top of `script.js`: pull distance, launch speed, gravity, aim-arc radius,
 toast duration, trajectory dot count and the greeting name.
+
+## Hosting
+
+Production runs on Vercel at https://otp-slingshot.vercel.app (project `otp-slingshot`).
+It is a static site: Vercel serves the repository root as-is, with no build
+step.
+
+```bash
+npx vercel link --project otp-slingshot   # once per checkout
+npx vercel deploy --prod
+```
